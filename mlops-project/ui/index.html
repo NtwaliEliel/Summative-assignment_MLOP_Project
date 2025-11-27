@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iris Species Classifier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">🌺 Iris Species Classifier</h1>
+            <p class="text-gray-600">Predict Iris species from sepal and petal measurements</p>
+            <div class="mt-4 inline-block bg-white rounded-lg px-4 py-2 shadow-sm">
+                <p class="text-sm text-gray-700">
+                    <strong>Label Mapping:</strong> 
+                    <span class="text-green-600">0 = setosa</span>, 
+                    <span class="text-blue-600">1 = versicolor</span>, 
+                    <span class="text-purple-600">2 = virginica</span>
+                </p>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Left Column: Prediction Form -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">🔮 Make a Prediction</h2>
+                <form id="predictForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Sepal Length (cm)
+                        </label>
+                        <input 
+                            type="number" 
+                            id="sepal_length" 
+                            step="0.1" 
+                            min="0" 
+                            max="20" 
+                            required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="e.g., 5.1"
+                        />
+                        <span class="text-red-500 text-sm hidden" id="error_sl"></span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Sepal Width (cm)
+                        </label>
+                        <input 
+                            type="number" 
+                            id="sepal_width" 
+                            step="0.1" 
+                            min="0" 
+                            max="20" 
+                            required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="e.g., 3.5"
+                        />
+                        <span class="text-red-500 text-sm hidden" id="error_sw"></span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Petal Length (cm)
+                        </label>
+                        <input 
+                            type="number" 
+                            id="petal_length" 
+                            step="0.1" 
+                            min="0" 
+                            max="20" 
+                            required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="e.g., 1.4"
+                        />
+                        <span class="text-red-500 text-sm hidden" id="error_pl"></span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Petal Width (cm)
+                        </label>
+                        <input 
+                            type="number" 
+                            id="petal_width" 
+                            step="0.1" 
+                            min="0" 
+                            max="20" 
+                            required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="e.g., 0.2"
+                        />
+                        <span class="text-red-500 text-sm hidden" id="error_pw"></span>
+                    </div>
+                    <button 
+                        type="submit" 
+                        id="predictBtn"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                        <span id="predictBtnText">Predict Species</span>
+                        <span id="predictSpinner" class="spinner hidden ml-2"></span>
+                    </button>
+                </form>
+
+                <!-- Prediction Result Card -->
+                <div id="resultCard" class="mt-6 hidden fade-in">
+                    <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border-2 border-green-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Prediction Result</h3>
+                        <div class="space-y-2">
+                            <p class="text-gray-700">
+                                <strong>Species:</strong> 
+                                <span id="resultLabel" class="font-bold text-lg"></span>
+                            </p>
+                            <p class="text-gray-700">
+                                <strong>Confidence:</strong> 
+                                <span id="resultProbability" class="font-semibold"></span>
+                            </p>
+                            <p class="text-sm text-gray-600 mt-2" id="resultExplanation"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                <div id="errorCard" class="mt-6 hidden fade-in">
+                    <div class="bg-red-50 border-2 border-red-200 rounded-lg p-4">
+                        <p class="text-red-700 font-semibold" id="errorMessage"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Retrain Form -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">🔄 Retrain Model</h2>
+                <form id="retrainForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Upload CSV File with New Data
+                        </label>
+                        <input 
+                            type="file" 
+                            id="csvFile" 
+                            accept=".csv" 
+                            required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </div>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-gray-700">
+                        <p class="font-semibold mb-1">Required CSV Format:</p>
+                        <code class="text-xs block bg-white p-2 rounded">
+                            sepal_length,sepal_width,petal_length,petal_width,target<br/>
+                            5.1,3.5,1.4,0.2,0<br/>
+                            6.0,2.2,4.0,1.0,1<br/>
+                            6.5,3.0,5.2,2.0,2
+                        </code>
+                        <p class="mt-2 text-xs">Target values: 0 (setosa), 1 (versicolor), 2 (virginica)</p>
+                    </div>
+                    <button 
+                        type="submit" 
+                        id="retrainBtn"
+                        class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                        <span id="retrainBtnText">Upload & Retrain</span>
+                        <span id="retrainSpinner" class="spinner hidden ml-2"></span>
+                    </button>
+                </form>
+
+                <!-- Retrain Result Card -->
+                <div id="retrainResultCard" class="mt-6 hidden fade-in">
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border-2 border-green-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Retraining Complete</h3>
+                        <div id="retrainMetrics" class="space-y-2 text-sm"></div>
+                    </div>
+                </div>
+
+                <!-- Retrain Error Card -->
+                <div id="retrainErrorCard" class="mt-6 hidden fade-in">
+                    <div class="bg-red-50 border-2 border-red-200 rounded-lg p-4">
+                        <p class="text-red-700 font-semibold" id="retrainErrorMessage"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Insights Gallery -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">📊 Data Insights</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center">
+                    <img 
+                        src="assets/class_distribution.png" 
+                        alt="Class Distribution" 
+                        class="w-full rounded-lg shadow-md hover:shadow-lg transition"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                    />
+                    <p class="text-sm text-gray-600 mt-2 hidden">Class Distribution</p>
+                    <p class="text-sm font-medium text-gray-700 mt-1">Class Distribution</p>
+                </div>
+                <div class="text-center">
+                    <img 
+                        src="assets/correlation.png" 
+                        alt="Feature Correlation" 
+                        class="w-full rounded-lg shadow-md hover:shadow-lg transition"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                    />
+                    <p class="text-sm text-gray-600 mt-2 hidden">Feature Correlation</p>
+                    <p class="text-sm font-medium text-gray-700 mt-1">Feature Correlation</p>
+                </div>
+                <div class="text-center">
+                    <img 
+                        src="assets/confusion_matrix.png" 
+                        alt="Confusion Matrix" 
+                        class="w-full rounded-lg shadow-md hover:shadow-lg transition"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                    />
+                    <p class="text-sm text-gray-600 mt-2 hidden">Confusion Matrix</p>
+                    <p class="text-sm font-medium text-gray-700 mt-1">Confusion Matrix</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_URL = ""; // Set this to your API URL, e.g., "http://localhost:8000" or "https://your-api.onrender.com"
+
+        // Label mapping
+        const LABEL_MAPPING = {
+            0: "setosa",
+            1: "versicolor",
+            2: "virginica"
+        };
+
+        const LABEL_COLORS = {
+            "setosa": "text-green-600",
+            "versicolor": "text-blue-600",
+            "virginica": "text-purple-600"
+        };
+
+        // Utility functions
+        function showError(elementId, message) {
+            const errorEl = document.getElementById(elementId);
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.classList.remove("hidden");
+            }
+        }
+
+        function hideError(elementId) {
+            const errorEl = document.getElementById(elementId);
+            if (errorEl) {
+                errorEl.classList.add("hidden");
+            }
+        }
+
+        function showCard(cardId) {
+            document.getElementById(cardId).classList.remove("hidden");
+            document.getElementById(cardId).classList.add("fade-in");
+        }
+
+        function hideCard(cardId) {
+            document.getElementById(cardId).classList.add("hidden");
+        }
+
+        function setLoading(buttonId, spinnerId, textId, isLoading) {
+            const btn = document.getElementById(buttonId);
+            const spinner = document.getElementById(spinnerId);
+            const text = document.getElementById(textId);
+            
+            if (isLoading) {
+                btn.disabled = true;
+                spinner.classList.remove("hidden");
+            } else {
+                btn.disabled = false;
+                spinner.classList.add("hidden");
+            }
+        }
+
+        // Prediction form handler
+        document.getElementById("predictForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            
+            // Hide previous results
+            hideCard("resultCard");
+            hideCard("errorCard");
+            hideError("error_sl");
+            hideError("error_sw");
+            hideError("error_pl");
+            hideError("error_pw");
+
+            // Validate API URL
+            if (!API_URL) {
+                showCard("errorCard");
+                document.getElementById("errorMessage").textContent = 
+                    "Please set API_URL in the JavaScript code to your deployed API endpoint.";
+                return;
+            }
+
+            // Get form values
+            const sepal_length = parseFloat(document.getElementById("sepal_length").value);
+            const sepal_width = parseFloat(document.getElementById("sepal_width").value);
+            const petal_length = parseFloat(document.getElementById("petal_length").value);
+            const petal_width = parseFloat(document.getElementById("petal_width").value);
+
+            // Validate inputs
+            let hasError = false;
+            if (isNaN(sepal_length) || sepal_length < 0 || sepal_length > 20) {
+                showError("error_sl", "Must be a number between 0 and 20");
+                hasError = true;
+            }
+            if (isNaN(sepal_width) || sepal_width < 0 || sepal_width > 20) {
+                showError("error_sw", "Must be a number between 0 and 20");
+                hasError = true;
+            }
+            if (isNaN(petal_length) || petal_length < 0 || petal_length > 20) {
+                showError("error_pl", "Must be a number between 0 and 20");
+                hasError = true;
+            }
+            if (isNaN(petal_width) || petal_width < 0 || petal_width > 20) {
+                showError("error_pw", "Must be a number between 0 and 20");
+                hasError = true;
+            }
+
+            if (hasError) return;
+
+            // Show loading state
+            setLoading("predictBtn", "predictSpinner", "predictBtnText", true);
+
+            try {
+                const response = await fetch(`${API_URL}/predict`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        sepal_length,
+                        sepal_width,
+                        petal_length,
+                        petal_width
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || data.detail?.message || "Prediction failed");
+                }
+
+                // Show result
+                const result = data.data || data;
+                const label = result.label || LABEL_MAPPING[result.label_id] || "Unknown";
+                const probability = (result.probability * 100).toFixed(2);
+
+                document.getElementById("resultLabel").textContent = label;
+                document.getElementById("resultLabel").className = `font-bold text-lg ${LABEL_COLORS[label] || "text-gray-800"}`;
+                document.getElementById("resultProbability").textContent = `${probability}%`;
+                document.getElementById("resultExplanation").textContent = 
+                    `The model predicts this Iris sample is ${label} with ${probability}% confidence.`;
+
+                showCard("resultCard");
+
+            } catch (error) {
+                console.error("Prediction error:", error);
+                showCard("errorCard");
+                if (error.message.includes("fetch") || error.message.includes("Failed to fetch")) {
+                    document.getElementById("errorMessage").textContent = 
+                        "Unable to connect to the API. Please check that the API is running and API_URL is correct.";
+                } else {
+                    document.getElementById("errorMessage").textContent = error.message;
+                }
+            } finally {
+                setLoading("predictBtn", "predictSpinner", "predictBtnText", false);
+            }
+        });
+
+        // Retrain form handler
+        document.getElementById("retrainForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            // Hide previous results
+            hideCard("retrainResultCard");
+            hideCard("retrainErrorCard");
+
+            // Validate API URL
+            if (!API_URL) {
+                showCard("retrainErrorCard");
+                document.getElementById("retrainErrorMessage").textContent = 
+                    "Please set API_URL in the JavaScript code to your deployed API endpoint.";
+                return;
+            }
+
+            const fileInput = document.getElementById("csvFile");
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showCard("retrainErrorCard");
+                document.getElementById("retrainErrorMessage").textContent = "Please select a CSV file.";
+                return;
+            }
+
+            // Show loading state
+            setLoading("retrainBtn", "retrainSpinner", "retrainBtnText", true);
+
+            try {
+                const formData = new FormData();
+                formData.append("file", file);
+
+                const response = await fetch(`${API_URL}/retrain`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    const errorMsg = data.message || data.detail?.message || "Retraining failed";
+                    const errorData = data.detail?.data || data.data || {};
+                    throw new Error(errorMsg + (errorData.error ? `: ${errorData.error}` : ""));
+                }
+
+                // Show success result
+                const metrics = data.data?.metrics || {};
+                const samples = data.data?.samples || {};
+
+                let metricsHtml = "";
+                if (metrics.accuracy !== undefined) {
+                    metricsHtml += `<p><strong>Accuracy:</strong> ${(metrics.accuracy * 100).toFixed(2)}%</p>`;
+                }
+                if (metrics.precision !== undefined) {
+                    metricsHtml += `<p><strong>Precision:</strong> ${(metrics.precision * 100).toFixed(2)}%</p>`;
+                }
+                if (metrics.recall !== undefined) {
+                    metricsHtml += `<p><strong>Recall:</strong> ${(metrics.recall * 100).toFixed(2)}%</p>`;
+                }
+                if (metrics.f1_score !== undefined) {
+                    metricsHtml += `<p><strong>F1 Score:</strong> ${(metrics.f1_score * 100).toFixed(2)}%</p>`;
+                }
+                if (samples.total) {
+                    metricsHtml += `<p class="mt-2 text-xs text-gray-600">Total samples: ${samples.total} (Train: ${samples.train}, Test: ${samples.test})</p>`;
+                }
+
+                document.getElementById("retrainMetrics").innerHTML = metricsHtml;
+                showCard("retrainResultCard");
+
+                // Reset file input
+                fileInput.value = "";
+
+            } catch (error) {
+                console.error("Retrain error:", error);
+                showCard("retrainErrorCard");
+                if (error.message.includes("fetch") || error.message.includes("Failed to fetch")) {
+                    document.getElementById("retrainErrorMessage").textContent = 
+                        "Unable to connect to the API. Please check that the API is running and API_URL is correct.";
+                } else {
+                    document.getElementById("retrainErrorMessage").textContent = error.message;
+                }
+            } finally {
+                setLoading("retrainBtn", "retrainSpinner", "retrainBtnText", false);
+            }
+        });
+    </script>
+</body>
+</html>
